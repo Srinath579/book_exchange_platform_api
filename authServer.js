@@ -41,6 +41,7 @@ async function createDatabaseAndTables() {
         USER_ID INT PRIMARY KEY AUTO_INCREMENT,
         EMAIL_ID VARCHAR(255) UNIQUE,
         PASSWORD VARCHAR(255),
+        ADDRESS VARCHAR(500),
         registration_date DATE,
         last_login_date DATE
       )
@@ -66,6 +67,7 @@ async function createDatabaseAndTables() {
         genre VARCHAR(255),
         book_condition VARCHAR(255),
         availability_status ENUM('Available', 'Unavailable'),
+        book_image BLOB,
         owner_id INT,
         FOREIGN KEY (owner_id) REFERENCES User(USER_ID)
       )
@@ -208,6 +210,8 @@ app.post('/register', async (req, res) => {
   }
 });
 
+
+
 // Protected route (middleware to verify authorization token)
 const verifyToken = async (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -227,6 +231,30 @@ const verifyToken = async (req, res, next) => {
     return res.status(401).json({ message: 'Unauthorized' });
   }
 };
+
+app.get('/user/:userId', verifyToken, async (req, res) => {
+  const userId = req.params.userId;
+
+  try {
+    const connection = await pool.getConnection();
+    const [user] = await connection.query('SELECT * FROM User WHERE USER_ID = ?', [userId]);
+    await connection.release();
+
+    if (!user.length) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Remove the password field from the user object
+    const userWithoutPassword = { ...user[0] };
+    delete userWithoutPassword.PASSWORD;
+
+    res.json({ user: userWithoutPassword });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 app.get('/protected', verifyToken, (req, res) => {
   // Access protected data or resources here, using req.userId

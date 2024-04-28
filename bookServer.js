@@ -46,32 +46,34 @@ app.use(verifyToken);
 
 // Add Book
 app.post('/books', async (req, res) => {
-  const { title, author, genre, book_condition, availability_status, owner_id } = req.body;
-  const query = `INSERT INTO Book (title, author, genre, book_condition, availability_status, owner_id) 
-                 VALUES (?, ?, ?, ?, ?, ?)`;
-  try {
-    const result = await pool.query(query, [title, author, genre, book_condition, availability_status, owner_id]);
-    const bookId = result[0].insertId;
-    const book = {
-      bookId,
-      title,
-      author,
-      genre,
-      book_condition,
-      availability_status,
-      owner_id,
-      links: [
-        { rel: 'self', href: `/books/${bookId}` },
-        { rel: 'update', href: `/books/${bookId}`, method: 'PUT' },
-        { rel: 'delete', href: `/books/${bookId}`, method: 'DELETE' }
-      ]
-    };
-    res.status(201).json(book);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error adding book' });
-  }
-});
+    const { title, author, genre, book_condition, availability_status, owner_id, image } = req.body;
+    const query = `INSERT INTO Book (title, author, genre, book_condition, availability_status, owner_id, book_image) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    try {
+      const result = await pool.query(query, [title, author, genre, book_condition, availability_status, owner_id, image]);
+      const bookId = result.insertId;
+      const book = {
+        bookId,
+        title,
+        author,
+        genre,
+        book_condition,
+        availability_status,
+        owner_id,
+        image,
+        links: [
+          { rel: 'self', href: `/books/${bookId}` },
+          { rel: 'update', href: `/books/${bookId}`, method: 'PUT' },
+          { rel: 'delete', href: `/books/${bookId}`, method: 'DELETE' }
+        ]
+      };
+      res.status(201).json(book);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Error adding book' });
+    }
+  });
+  
 
 // Retrieve Book by ID
 app.get('/books/:id', async (req, res) => {
@@ -100,35 +102,36 @@ app.get('/books/:id', async (req, res) => {
 
 // Update Book
 app.put('/books/:id', async (req, res) => {
-  const bookId = req.params.id;
-  const { title, author, genre, book_condition, availability_status, owner_id } = req.body;
-  const query = `UPDATE Book SET title=?, author=?, genre=?, book_condition=?, availability_status=?, owner_id=? WHERE book_id=?`;
-  try {
-    const result = await pool.query(query, [title, author, genre, book_condition, availability_status, owner_id, bookId]);
-    if (result.affectedRows === 0) {
-      res.status(404).json({ message: 'Book not found' });
-    } else {
-      const book = {
-        bookId,
-        title,
-        author,
-        genre,
-        book_condition,
-        availability_status,
-        owner_id,
-        links: [
-          { rel: 'self', href: `/books/${bookId}` },
-          { rel: 'update', href: `/books/${bookId}`, method: 'PUT' },
-          { rel: 'delete', href: `/books/${bookId}`, method: 'DELETE' }
-        ]
-      };
-      res.status(200).json(book);
+    const bookId = req.params.id;
+    const { title, author, genre, book_condition, availability_status, owner_id, image } = req.body;
+    const query = `UPDATE Book SET title=?, author=?, genre=?, book_condition=?, availability_status=?, owner_id=?, book_image=? WHERE book_id=?`;
+    try {
+      const result = await pool.query(query, [title, author, genre, book_condition, availability_status, owner_id, image, bookId]);
+      if (result.affectedRows === 0) {
+        res.status(404).json({ message: 'Book not found' });
+      } else {
+        const book = {
+          bookId,
+          title,
+          author,
+          genre,
+          book_condition,
+          availability_status,
+          owner_id,
+          links: [
+            { rel: 'self', href: `/books/${bookId}` },
+            { rel: 'update', href: `/books/${bookId}`, method: 'PUT' },
+            { rel: 'delete', href: `/books/${bookId}`, method: 'DELETE' }
+          ]
+        };
+        res.status(200).json(book);
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Error updating book' });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating book' });
-  }
-});
+  });
+  
 
 // Delete Book
 app.delete('/books/:id', async (req, res) => {
