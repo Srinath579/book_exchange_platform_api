@@ -149,29 +149,33 @@ app.delete('/books/:id', async (req, res) => {
 
 // Retrieve All Books
 app.get('/books', async (req, res) => {
-  const userId = req.query.userId;// Assuming userId is sent in the request body
-  let query = 'SELECT * FROM Book';
-
-  if (userId) {
-    query += ` WHERE owner_id != ${userId}`;
-  }
-
-  try {
-    const [results] = await pool.query(query);
-    const books = results.map(book => ({
-      ...book,
-      links: [
-        { rel: 'self', href: `/books/${book.book_id}` },
-        { rel: 'update', href: `/books/${book.book_id}`, method: 'PUT' },
-        { rel: 'delete', href: `/books/${book.book_id}`, method: 'DELETE' }
-      ]
-    }));
-    res.status(200).json(books);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error retrieving books' });
-  }
-});
+    const userId = req.query.userId;
+    const includeUserId = req.query.includeUserId;
+    let query = 'SELECT * FROM Book';
+  
+    // If includeUserId is provided, show books only of that user ID
+    if (includeUserId=="true") {
+      query += ` WHERE owner_id = ${userId}`;
+    } else if (includeUserId=="false") {
+      query += ` WHERE owner_id != ${userId}`;
+    }
+  
+    try {
+      const [results] = await pool.query(query);
+      const books = results.map(book => ({
+        ...book,
+        links: [
+          { rel: 'self', href: `/books/${book.book_id}` },
+          { rel: 'update', href: `/books/${book.book_id}`, method: 'PUT' },
+          { rel: 'delete', href: `/books/${book.book_id}`, method: 'DELETE' }
+        ]
+      }));
+      res.status(200).json(books);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Error retrieving books' });
+    }
+  });
 
 
 
