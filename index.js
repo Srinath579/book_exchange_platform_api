@@ -54,11 +54,12 @@ app.post('/login', async (req, res) => {
     }
 
     // Generate JWT token with user ID
-    const userid = user.EMAIL_ID;
+    const emailid = user.EMAIL_ID;
+    const username = user.USER_NAME;
     const payload = { userId: user.USER_ID };
     const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' }); // Token expires in 1 hour
 
-    res.json({ userid, token });
+    res.json({ emailid, username, token });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Internal server error' });
@@ -66,7 +67,7 @@ app.post('/login', async (req, res) => {
 });
 
 app.post('/register', async (req, res) => {
-  const { email, password } = req.body;
+  const { username, email, password } = req.body;
 
   try {
     // Validate username presence
@@ -92,7 +93,8 @@ app.post('/register', async (req, res) => {
 
     // Insert new user data (using prepared statement)
     connection = await pool.getConnection();
-    const [result] = await connection.query('INSERT INTO users (EMAIL_ID, PASSWORD) VALUES (?, ?)', [email, password]);
+    let RegDate = new Date();
+    const [result] = await connection.query('INSERT INTO users (USER_NAME, EMAIL_ID, PASSWORD, REG_DATE) VALUES (?, ?, ?, ?)', [username, email, password, RegDate.toISOString().slice(0, 19).replace('T', ' ')]);
 
     // Release connection
     await connection.release();
@@ -128,5 +130,75 @@ app.get('/protected', verifyToken, (req, res) => {
   // Access protected data or resources here, using req.userId
   res.json({ message: 'Welcome, authorized user!' });
 });
+
+app.get('/books', verifyToken, async (req, res) => {
+
+  const emailid = req.headers.emailid;
+  try {
+    let connection = await pool.getConnection();
+    const [books] = await connection.query('SELECT * FROM BOOKS WHERE OWNER_EMAIL_ID!=? AND AVAILABILITY_STATUS=?', [emailid, 'AVAILABLE']);
+    await connection.release();
+    const allbooks = books;
+    res.json({ allbooks });
+  }
+  catch (err) {
+
+  }
+});
+
+app.get('/userbooks', verifyToken, async (req, res) => {
+
+  const emailid = req.headers.emailid;
+  try {
+    let connection = await pool.getConnection();
+    const [books] = await connection.query('SELECT * FROM BOOKS WHERE OWNER_EMAIL_ID=?', [emailid]);
+    await connection.release();
+    const allbooks = books;
+    res.json({ allbooks });
+  }
+  catch (err) {
+
+  }
+});
+
+app.delete('/deleteuserbook', verifyToken, async (req, res) => {
+  const bookid = req.headers.bookid;
+  try {
+    let connection = await pool.getConnection();
+    const [books] = await connection.query('DELETE FROM BOOKS WHERE BOOK_ID=?', [bookid]);
+    await connection.release();
+    res.json({ message: 'Book Deleted Successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.put('/changeavailability', verifyToken, async (req, res) => {
+
+  const bookid = req.headers.bookid;
+  try {
+    let connection = await pool.getConnection();
+    const [books] = await connection.query('SELECT * FROM BOOKS WHERE BOOK_ID=?', [bookid]);
+    await connection.release();
+    if (books[0].AVAILABILITY_STATUS === 'AVAILABLE') {
+      let status = 'UNAVAILABLE';
+      await pool.getConnection();
+      const [changebookstatus] = await connection.query('UPDATE BOOKS SET AVAILABILITY_STATUS = ? WHERE BOOK_ID=?', [status, bookid]);
+      await connection.release();
+    }
+    else if (books[0].AVAILABILITY_STATUS === 'UNAVAILABLE') {
+      let status = 'AVAILABLE';
+      await pool.getConnection();
+      const [changebookstatus] = await connection.query('UPDATE BOOKS SET AVAILABILITY_STATUS = ? WHERE BOOK_ID=?', [status, bookid]);
+      await connection.release();
+    }
+    res.json({ message: 'Updated Book Status Successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 
 app.listen(3000, () => console.log('Server listening on port 3000'));
