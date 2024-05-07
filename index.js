@@ -56,7 +56,7 @@ app.post('/login', async (req, res) => {
     // Generate JWT token with user ID
     const emailid = user.EMAIL_ID;
     const username = user.USER_NAME;
-    const payload = { userId: user.USER_ID };
+    const payload = { userId: user.USER_NAME };
     const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' }); // Token expires in 1 hour
 
     res.json({ emailid, username, token });
