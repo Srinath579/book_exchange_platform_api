@@ -15,7 +15,7 @@ CREATE TABLE BOOKS (
         GENRE VARCHAR(255),
         BOOK_CONDITION ENUM('G', 'SD', 'D'),
         AVAILABILITY_STATUS ENUM('AVAILABLE', 'UNAVAILABLE', 'OCCUPIED'),
-        BOOK_IMAGE BLOB,
+        BOOK_IMAGE LONGTEXT,
         OWNER_ID INT,
         OWNER_EMAIL_ID VARCHAR(50),
         OWNER_NAME VARCHAR(20),
@@ -32,8 +32,9 @@ CREATE TABLE EXCHANGE (
         BOOK_ID INT,
         BOOK_NAME VARCHAR(255),
         DELIVERY_METHOD ENUM('Postal', 'Nodal Point', 'Home Pickup'),
-        DURATION_OF_BOOK_1 INT,
-        DURATION_OF_BOOK_2 ENUM('Days', 'Weeks', 'Months', 'Years'),
+        /*DURATION_OF_BOOK_1 INT,
+        DURATION_OF_BOOK_2 ENUM('Days', 'Weeks', 'Months', 'Years'),*/
+        RETURN_DATE DATE,
         STATUS ENUM('Requested', 'Accepted', 'Declined'),
         FOREIGN KEY (REQUESTER_EMAIL_ID) REFERENCES USERS(EMAIL_ID),
         FOREIGN KEY (OWNER_EMAIL_ID) REFERENCES USERS(EMAIL_ID)
