@@ -7,7 +7,9 @@ const cors = require('cors');
 
 const app = express();
 
-app.use(bodyParser.json()) // for parsing application/json
+//app.use(bodyParser.json()) // for parsing application/json
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 const saltRounds = 10;
@@ -204,7 +206,7 @@ app.get('/userrequests', verifyToken, async (req, res) => {
   const { emailid, username } = req.headers;
   try {
     let connection = await pool.getConnection();
-    let [userrequests] = await connection.query('SELECT BOOKS.AUTHOR, BOOKS.OWNER_NAME, EXCHANGE.* FROM EXCHANGE INNER JOIN BOOKS WHERE EXCHANGE.REQUESTER_NAME = ? AND EXCHANGE.REQUESTER_EMAIL_ID = ? AND BOOKS.OWNER_EMAIL_ID = EXCHANGE.OWNER_EMAIL_ID AND BOOKS.TITLE = EXCHANGE.BOOK_NAME', [username, emailid]);
+    let [userrequests] = await connection.query('SELECT BOOKS.AUTHOR, BOOKS.BOOK_IMAGE, BOOKS.OWNER_NAME, EXCHANGE.* FROM EXCHANGE INNER JOIN BOOKS WHERE EXCHANGE.REQUESTER_NAME = ? AND EXCHANGE.REQUESTER_EMAIL_ID = ? AND BOOKS.OWNER_EMAIL_ID = EXCHANGE.OWNER_EMAIL_ID AND BOOKS.TITLE = EXCHANGE.BOOK_NAME', [username, emailid]);
     await connection.release();
     res.json({ userrequests });
   } catch (error) {
@@ -230,7 +232,7 @@ app.get('/getexchangerequests', verifyToken, async (req, res) => {
   const { emailid } = req.headers;
   try {
     let connection = await pool.getConnection();
-    let [exchangerequests] = await connection.query('SELECT BOOKS.AUTHOR, BOOKS.OWNER_NAME, EXCHANGE.* FROM EXCHANGE INNER JOIN BOOKS WHERE EXCHANGE.OWNER_EMAIL_ID = ? AND BOOKS.OWNER_EMAIL_ID = EXCHANGE.OWNER_EMAIL_ID AND BOOKS.TITLE = EXCHANGE.BOOK_NAME', [emailid]);
+    let [exchangerequests] = await connection.query('SELECT BOOKS.AUTHOR, BOOKS.BOOK_IMAGE, BOOKS.OWNER_NAME, EXCHANGE.* FROM EXCHANGE INNER JOIN BOOKS WHERE EXCHANGE.OWNER_EMAIL_ID = ? AND BOOKS.OWNER_EMAIL_ID = EXCHANGE.OWNER_EMAIL_ID AND BOOKS.TITLE = EXCHANGE.BOOK_NAME', [emailid]);
     await connection.release();
     res.json({ exchangerequests });
   } catch (error) {
@@ -261,9 +263,24 @@ app.put('/submitexchangerequest', verifyToken, async (req, res) => {
     let connection = await pool.getConnection();
     let [exchangerequests] = await connection.query('INSERT INTO EXCHANGE (REQUESTER_EMAIL_ID, REQUESTER_NAME, OWNER_EMAIL_ID, BOOK_ID, BOOK_NAME, DELIVERY_METHOD, RETURN_DATE, STATUS) VALUES(?,?,?,?,?,?,?,?)', [useremailid, username, owneremailid, bookid, bookname, deliverymethod, returnbydate, status]);
     await connection.release();
-    res.json({ message: 'Inserted a New Exchange Request Status Successfully' });
+    res.json({ message: 'Inserted a New Exchange Request Successfully' });
   } catch (error) {
     console.error('Error in Inserting exchange requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/adduserbook', verifyToken, async (req, res) => {
+  const { useremailid, username } = req.headers;
+  const formData = req.body.formData;
+  try {
+    let connection = await pool.getConnection();
+    let [users] = await connection.query('SELECT * FROM USERS WHERE EMAIL_ID=?', [useremailid])
+    let [exchangerequests] = await connection.query('INSERT INTO BOOKS(TITLE, AUTHOR, GENRE, BOOK_CONDITION, AVAILABILITY_STATUS, BOOK_IMAGE, OWNER_ID, OWNER_EMAIL_ID, OWNER_NAME) VALUES(?,?,?,?,?,?,?,?,?)', [formData.title, formData.author, formData.genre, formData.bookcondition, formData.status, formData.bookimage, users[0].USER_ID, useremailid, username]);
+    await connection.release();
+    res.json({ message: 'Inserted a New Book Successfully' });
+  } catch (error) {
+    console.error('Error in Inserting a Book:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
