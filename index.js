@@ -252,5 +252,21 @@ app.put('/updateexchangerequest', verifyToken, async (req, res) => {
   }
 });
 
+app.put('/submitexchangerequest', verifyToken, async (req, res) => {
+  const { useremailid, owneremailid, username, bookid, bookname } = req.headers;
+  const returnbydate = req.headers.returnbydate;
+  const deliverymethod = req.headers.deliverymethod
+  try {
+    let status = 'Requested';
+    let connection = await pool.getConnection();
+    let [exchangerequests] = await connection.query('INSERT INTO EXCHANGE (REQUESTER_EMAIL_ID, REQUESTER_NAME, OWNER_EMAIL_ID, BOOK_ID, BOOK_NAME, DELIVERY_METHOD, RETURN_DATE, STATUS) VALUES(?,?,?,?,?,?,?,?)', [useremailid, username, owneremailid, bookid, bookname, deliverymethod, returnbydate, status]);
+    await connection.release();
+    res.json({ message: 'Inserted a New Exchange Request Status Successfully' });
+  } catch (error) {
+    console.error('Error in Inserting exchange requests:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 
 app.listen(3000, () => console.log('Server listening on port 3000'));
